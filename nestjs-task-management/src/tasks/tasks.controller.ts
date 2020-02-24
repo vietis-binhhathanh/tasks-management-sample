@@ -1,8 +1,21 @@
-import { Controller, Get, Post, Body, Param, Delete, Patch, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Patch,
+  Query,
+  UsePipes,
+  ValidationPipe,
+  NotFoundException,
+} from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { Task, TaskStatus } from './task.module';
 import { CreateTaskDTO } from './dto/create-task.dto';
 import { GetTasksFilterDTO } from './dto/get-tasks-filter.dto';
+import { TaskStatusValidationPipe } from './pipes/task-status-validation.pipe';
 
 @Controller('tasks')
 export class TasksController {
@@ -10,11 +23,15 @@ export class TasksController {
 
     /**
      * GET
-     * get all Task
+     * get all Task or filter
      */
     @Get()
-    getTasks(@Query() filterDTO: GetTasksFilterDTO): Task[] {
+    getTasks(@Query(ValidationPipe) filterDTO: GetTasksFilterDTO): Task[] {
+      if (Object.keys(filterDTO).length) {
         return this.tasksService.getTasksWithFilter(filterDTO);
+      } else {
+        return this.tasksService.getAllTask();
+      }
     }
 
     /**
@@ -22,10 +39,15 @@ export class TasksController {
      * get one by id
      * @param id
      */
-
     @Get('/:id')
     getTaskById(@Param('id') id: string): Task {
-        return this.tasksService.getTaskById(id);
+        const found =  this.tasksService.getTaskById(id);
+
+        if (!found) {
+          throw new NotFoundException(`Task with ID is "${id}" not found`);
+        }
+
+        return found;
     }
 
     /**
@@ -34,6 +56,7 @@ export class TasksController {
      * create a task
      */
     @Post()
+    @UsePipes(ValidationPipe)
     createTask(@Body() createTaskDTO: CreateTaskDTO): Task {
         return this.tasksService.createTask(createTaskDTO);
     }
@@ -43,7 +66,6 @@ export class TasksController {
      * delete a task by id
      * @param id
      */
-
      @Delete('/:id')
      deleteTask(@Param('id') id: string): void {
          this.tasksService.deleteTask(id);
@@ -56,8 +78,7 @@ export class TasksController {
       * @param status
       */
      @Patch('/:id/status')
-     updateTaskStatus(@Param('id') id: string, @Body('status') status: TaskStatus): Task {
+     updateTaskStatus(@Param('id') id: string, @Body('status', TaskStatusValidationPipe) status: TaskStatus): Task {
          return this.tasksService.updateTaskStatus(id, status);
      }
-
 }
