@@ -10,7 +10,7 @@ import {
   UsePipes,
   ValidationPipe,
   NotFoundException,
-  UseGuards,
+  UseGuards, Logger,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDTO } from './dto/create-task.dto';
@@ -25,6 +25,7 @@ import { AuthGuard } from '@nestjs/passport';
 @Controller('tasks')
 @UseGuards(AuthGuard())
 export class TasksController {
+  private logger = new Logger('TasksController');
     constructor(private tasksService: TasksService) {}
 
     /**
@@ -32,8 +33,11 @@ export class TasksController {
      * get all Task or filter
      */
     @Get()
-    getTasks(@Query(ValidationPipe) filterDTO: GetTasksFilterDTO) {
-      return this.tasksService.getTasks(filterDTO);
+    getTasks(
+      @Query(ValidationPipe) filterDTO: GetTasksFilterDTO,
+      @GetUser() user: User,
+      ) {
+      return this.tasksService.getTasks(filterDTO, user);
     }
 
     /**
